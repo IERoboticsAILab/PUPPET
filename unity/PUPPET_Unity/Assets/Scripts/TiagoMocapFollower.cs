@@ -33,6 +33,10 @@ public class TiagoMocapFollower : MonoBehaviour
     private bool initialized = false;
     private Vector3 positionOffset;
 
+    // Mocap-to-Unity translation fixed on the first pose; TrackedFurniture shares it.
+    public bool MocapInitialized => initialized;
+    public Vector3 MocapPositionOffset => positionOffset;
+
     private Vector3 lastMappedPos;
     private bool hasLastMappedPos = false;
 
