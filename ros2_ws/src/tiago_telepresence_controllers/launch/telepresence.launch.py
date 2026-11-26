@@ -12,6 +12,7 @@ PlayMotion2 is PAL's and already runs on 25.01; it is not started here.
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, RegisterEventHandler
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -63,12 +64,27 @@ def generate_launch_description():
         arguments=["--motion", motion, "--skip-planning", LaunchConfiguration("skip_planning")],
     )
 
+    # Only if PAL's camera driver does not publish the compressed image itself (./puppet doctor says).
+    camera = LaunchConfiguration("camera")
+    compress = Node(
+        package="image_transport",
+        executable="republish",
+        name="puppet_camera_compress",
+        arguments=["raw", "compressed"],
+        remappings=[("in", camera), ("out/compressed", [camera, "/compressed"])],
+        condition=IfCondition(LaunchConfiguration("compress_camera")),
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument("tcp_ip", default_value="0.0.0.0", description="address ROS-TCP-Endpoint listens on"),
         DeclareLaunchArgument("tcp_port", default_value="10000", description="port Unity connects to"),
         DeclareLaunchArgument("motion", default_value="", description="PlayMotion2 motion to play once tp_arm_motion is up"),
         DeclareLaunchArgument("skip_planning", default_value="false", description="ArmMotion without MoveIt planning (as ROS 1: false)"),
+        DeclareLaunchArgument("camera", default_value="/head_front_camera/rgb/image_raw", description="raw camera topic"),
+        DeclareLaunchArgument("compress_camera", default_value="false",
+                              description="republish `camera` as <camera>/compressed (when PAL's driver does not)"),
         endpoint,
+        compress,
         spawner,
         # The switcher and arm_motion need the tp controllers loaded; start them once the spawner is done.
         RegisterEventHandler(OnProcessExit(target_action=spawner, on_exit=[switcher, arm_motion])),

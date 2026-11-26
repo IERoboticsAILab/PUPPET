@@ -13,7 +13,8 @@
 #   3. Unity's view: /joint_states arrives through the endpoint
 #   4. torso, gripper, head and arm commands from the headset move the joints
 #   5. ArmMotion 'extend' through the endpoint: PlayMotion2 plays it, joints come back to us
-#   6. Ctrl+C on the launch file gives the joints back to PAL's controllers
+#   6. the keyboard condition (keyboard_teleop) moves the hand by the keyed steps
+#   7. Ctrl+C on the launch file gives the joints back to PAL's controllers
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -43,7 +44,7 @@ ros2 run play_motion2 play_motion2_node --ros-args --params-file $T/mock_motions
   --params-file $T/mock_motion_planner.yaml \
   -r /play_motion2_executor/robot_description:=/robot_description > $LOG/pm2.log 2>&1 &
 python3 $T/check.py owner pal 30 || fail_logs
-python3 /puppet_scripts/ros2/probe.py --mode doctor --seconds 2 || fail_logs
+python3 /puppet_scripts/ros2/probe.py --mode doctor --seconds 2 --plan-motions false || fail_logs
 
 step "PUPPET telepresence launch (the real one)"
 # Job control on, so the background launch gets Ctrl+C (SIGINT) like in a terminal.
@@ -58,7 +59,7 @@ sleep 3
 python3 /puppet_scripts/ros2/fake_unity.py 127.0.0.1:10000 --listen 3 || fail_logs
 
 step "./puppet check probe (read-only) during the session"
-python3 /puppet_scripts/ros2/probe.py --mode check --seconds 2 || fail_logs
+python3 /puppet_scripts/ros2/probe.py --mode check --seconds 2 --plan-motions false || fail_logs
 
 step "Fake headset: torso, gripper, head and arm commands"
 python3 $T/check.py snapshot /tmp/before.json
@@ -70,6 +71,17 @@ step "Fake headset: extend-arm button (ArmMotion extend via PlayMotion2)"
 python3 /puppet_scripts/ros2/fake_unity.py 127.0.0.1:10000 --arm-motion extend || fail_logs
 python3 $T/check.py at-motion extend || fail_logs
 python3 $T/check.py owner tp 20 || fail_logs
+
+step "Keyboard condition (keyboard_teleop, ROS 2): i i i w = 9 mm forward, 3 mm up"
+# From a pose inside every joint limit (extend has arm_3 past its limit, which bends some directions).
+python3 /puppet_scripts/ros2/fake_unity.py 127.0.0.1:10000 --arm-motion mid || fail_logs
+python3 $T/check.py ee-snapshot /tmp/ee0.json
+ros2 run keyboard_teleop keyboard_arm_teleop.py --keys iiiw --yes > $LOG/keyboard.log 2>&1 || fail_logs
+python3 $T/check.py ee-snapshot /tmp/ee1.json
+python3 $T/check.py ee-moved /tmp/ee0.json /tmp/ee1.json 0.009 0 0.003 || fail_logs
+ros2 run keyboard_teleop keyboard_arm_teleop.py --keys jjl --yes >> $LOG/keyboard.log 2>&1 || fail_logs
+python3 $T/check.py ee-snapshot /tmp/ee2.json
+python3 $T/check.py ee-moved /tmp/ee1.json /tmp/ee2.json 0 0.003 0 || fail_logs
 
 step "Ctrl+C on the launch file gives the joints back"
 kill -INT $LAUNCH

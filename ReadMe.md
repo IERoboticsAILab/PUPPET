@@ -10,6 +10,8 @@ Click a section below to jump directly to it. For a normal lab session, start wi
 
 > **One-command startup.** On `archimedes`, run `./puppet doctor` and then `./puppet up`. These start the same processes as the six-terminal checklist, in the same order, and ask the operator before every arm motion. `./puppet down` stops them. See [`docs/SETUP_IMPROVEMENTS.md`](docs/SETUP_IMPROVEMENTS.md). Settings are in `config/puppet.env`. The manual six-terminal procedure below still works as a fallback.
 
+> **TIAGo on PAL OS 25.01 (ROS 2).** The same commands work: `./puppet` detects whether TIAGo runs ROS 1 (Gallium) or ROS 2. On ROS 2, first run `./puppet deploy` once, and use the Quest's `PUPPET-ros2.apk`. Setup, settings and troubleshooting are in [`docs/ROS2.md`](docs/ROS2.md). The checklist for the first session on the robot is [`docs/ROS2_FIRST_RUN.md`](docs/ROS2_FIRST_RUN.md). This README's sections 6, 7 and 11 describe Gallium (ROS 1).
+
 
 1. [System overview](#section-1)
 2. [Hardware and software](#section-2)

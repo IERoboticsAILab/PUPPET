@@ -84,7 +84,7 @@ case "$mode" in
       in_container "colcon test --merge-install --event-handlers console_cohesion+ && colcon test-result --verbose" \
         || die "tests failed (above)"
     fi
-    echo "${G}ok${N}  install space: ros2_ws/install  (copy to TIAGo: scripts/ros2/deploy.sh)"
+    echo "${G}ok${N}  install space: ros2_ws/install  (copy to TIAGo: ./puppet deploy)"
     ;;
   *) die "unknown option $mode (see the top of this script)" ;;
 esac

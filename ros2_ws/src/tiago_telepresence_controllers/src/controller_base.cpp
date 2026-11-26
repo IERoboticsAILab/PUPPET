@@ -158,13 +158,18 @@ controller_interface::return_type ControllerBase::update(const rclcpp::Time &, c
     const auto desired = getDesiredJointValues(msg.positions, period.seconds());
 
     for (std::size_t i = 0; i < command_interfaces_.size(); i++) {
-      const auto & limits = jointLimits[i];
+      // If the joint already is beyond a limit (e.g. a start pose past the URDF limit), widen the
+      // range to the current position: clamping to the limit itself would make the joint jump.
+      // The command can then only move back toward the range, never further out.
+      const double q = msg.positions[i];
+      const double lower = std::min(jointLimits[i].first, q);
+      const double upper = std::max(jointLimits[i].second, q);
       auto cmd = desired[i];
 
-      if (cmd < limits.first || cmd > limits.second) {
-        RCLCPP_WARN_THROTTLE(logger(), clock(), UPDATE_LOG_THROTTLE_MS, "[%s] Joint %zu out of limits: %f not in [%f, %f]",
-                             name.c_str(), i, cmd, limits.first, limits.second);
-        cmd = std::max(limits.first, std::min(limits.second, cmd));
+      if (cmd < lower || cmd > upper) {
+        RCLCPP_WARN_THROTTLE(logger(), clock(), UPDATE_LOG_THROTTLE_MS, "[%s] Joint %s out of limits: %f not in [%f, %f]",
+                             name.c_str(), jointNames[i].c_str(), cmd, lower, upper);
+        cmd = std::max(lower, std::min(upper, cmd));
         notifyOutOfLimits = true;
       }
 

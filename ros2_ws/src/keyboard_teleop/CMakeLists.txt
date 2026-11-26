@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.16)
+project(keyboard_teleop NONE)
+find_package(ament_cmake REQUIRED)
+install(PROGRAMS scripts/keyboard_arm_teleop.py DESTINATION lib/${PROJECT_NAME})
+ament_package()

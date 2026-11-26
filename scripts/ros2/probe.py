@@ -84,12 +84,13 @@ def main():
     ap.add_argument("--tcp-port", type=int, default=10000)
     ap.add_argument("--camera", default="/head_front_camera/rgb/image_raw/compressed")
     ap.add_argument("--seconds", type=float, default=3.0)
+    ap.add_argument("--plan-motions", default="true", help="PLAN_MOTIONS from config/puppet.env")
     args = ap.parse_args()
 
     rclpy.init()
     node = Node("puppet_probe")
     report("ok", f"ROS 2 {os.environ.get('ROS_DISTRO', '?')}, RMW {os.environ.get('RMW_IMPLEMENTATION', 'default')}, "
-                 f"ROS_DOMAIN_ID {os.environ.get('ROS_DOMAIN_ID', '0')}")
+                 f"ROS_DOMAIN_ID {os.environ.get('ROS_DOMAIN_ID', '0')}, from {os.environ.get('PUPPET_DDS_SOURCE', 'login environment')}")
 
     # --- controller_manager and e-stop
     cs = controllers(node)
@@ -127,7 +128,9 @@ def main():
                 report("FAIL", f"tp controllers still active from an earlier session: {stale}", "./puppet down, or Ctrl+C the old telepresence launch")
         else:
             bad = [n for n in TP if state(n) != "active"]
-            if bad:
+            if bad and all(state(n) == "missing" for n in TP):
+                report("FAIL", "tp controllers not loaded: telepresence is not running", "./puppet attach (window telepresence), or ./puppet up")
+            elif bad:
                 report("FAIL", "tp controllers: " + ", ".join(f"{n}={state(n)}" for n in TP),
                        "after an e-stop PAL restarts its own controllers: ./puppet reset-arm")
             else:
@@ -139,11 +142,16 @@ def main():
     else:
         report("FAIL" if args.mode == "doctor" else "warn", "play_motion2 not running", "PAL starts it at boot; check the web GUI's module list")
 
+    names_now = {n for n, _ in node.get_node_names_and_namespaces()}
+    if args.plan_motions == "true" and "move_group" not in names_now:
+        report("FAIL" if args.mode == "doctor" else "warn", "MoveIt move_group not running, but PLAN_MOTIONS=true",
+               "PlayMotion2 will reject motions. Start PAL's motion planner, or set PLAN_MOTIONS=false (straight approach)")
+
     # --- camera (Unity's video)
     if counts[args.camera]:
         report("ok", f"camera {args.camera} {counts[args.camera] / args.seconds:.0f} Hz")
     elif args.camera.rsplit("/", 1)[0] in types:
-        report("warn", f"{args.camera} missing but the raw image exists", "compressed image_transport not running; see docs/ROS2.md (camera)")
+        report("warn", f"{args.camera} missing but the raw image exists", "set COMPRESS_CAMERA=true in config/puppet.local.env, then restart telepresence")
     else:
         report("warn", f"camera {args.camera} silent", "head camera driver down? (ros2 topic list | grep camera)")
 

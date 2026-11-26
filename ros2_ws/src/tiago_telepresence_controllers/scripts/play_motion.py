@@ -87,7 +87,8 @@ def run_motion(node, name, skip_planning, timeout):
     if result is None:
         raise RuntimeError(f"'{name}' did not finish in {timeout:.0f} s")
     if not result.result.success:
-        raise RuntimeError(f"'{name}' failed: {result.result.error}")
+        hint = "" if skip_planning else " (planning requested: is MoveIt's move_group running? PLAN_MOTIONS=false skips it)"
+        raise RuntimeError(f"'{name}' failed: {result.result.error}{hint}")
     return time.monotonic() - start
 
 
@@ -107,7 +108,7 @@ def main():
             print("\n".join(sorted(list_motions(node))))
             return 0
         added = add_motions(node, args.motions_file or default_motions_file())
-        print(f"added motions: {', '.join(added)}" if added else "PUPPET motions already known to play_motion2")
+        print(f"added motions: {', '.join(added)}" if added else "PUPPET motions already known to play_motion2", flush=True)
         if args.command == "run":
             if not args.motion:
                 ap.error("run needs a motion name")

@@ -5,6 +5,8 @@
     check.py snapshot FILE            save /joint_states positions as JSON
     check.py moved BEFORE AFTER       assert the drive test moved each group the right way
     check.py at-motion extend         assert the arm is at config/telepresence_motions.yaml's pose
+    check.py ee-snapshot FILE         save the hand position (torso_lift_link -> gripper_grasping_frame)
+    check.py ee-moved BEFORE AFTER DX DY DZ   assert the hand moved by (DX, DY, DZ) m, +-3 mm
 """
 
 import json
@@ -85,6 +87,21 @@ def at_motion(node, name):
     (ok if err < 0.02 else fail)(f"arm at '{name}' (max error {err:.3f} rad)")
 
 
+def ee_position(node):
+    from tf2_ros import Buffer, TransformListener
+    buf = Buffer()
+    TransformListener(buf, node)
+    end = time.monotonic() + 10
+    while time.monotonic() < end:
+        rclpy.spin_once(node, timeout_sec=0.1)
+        try:
+            t = buf.lookup_transform("torso_lift_link", "gripper_grasping_frame", rclpy.time.Time()).transform.translation
+            return [t.x, t.y, t.z]
+        except Exception:  # noqa: BLE001
+            continue
+    fail("no TF torso_lift_link -> gripper_grasping_frame")
+
+
 def main():
     rclpy.init()
     node = Node("mock_check")
@@ -95,6 +112,16 @@ def main():
         json.dump(joint_positions(node), open(sys.argv[2], "w"))
     elif cmd == "moved":
         moved(json.load(open(sys.argv[2])), json.load(open(sys.argv[3])))
+    elif cmd == "ee-snapshot":
+        time.sleep(2.0)  # let the arm settle
+        json.dump(ee_position(node), open(sys.argv[2], "w"))
+    elif cmd == "ee-moved":
+        b, a = json.load(open(sys.argv[2])), json.load(open(sys.argv[3]))
+        want = [float(x) for x in sys.argv[4:7]]
+        got = [y - x for x, y in zip(b, a)]
+        good = all(abs(g - w) < 0.003 for g, w in zip(got, want))
+        (ok if good else fail)("keyboard teleop moved the hand by " + " ".join(f"{g * 1000:+.1f}" for g in got)
+                               + " mm (wanted " + " ".join(f"{w * 1000:+.1f}" for w in want) + ")")
     elif cmd == "at-motion":
         at_motion(node, sys.argv[2])
     rclpy.shutdown()

@@ -4,8 +4,9 @@ This is the single list of every topic and service the Quest app (Unity) uses, a
 on each robot OS. Owners: `puppet_ros2` (robot side), `puppet_unity` (Unity side). Change it here
 first, then tell the other side.
 
-**Rule:** names and types stay the same on ROS 1 and ROS 2. When PAL renamed something on 25.01,
-the robot side adds a relay or remap. Unity does not change.
+**Rule:** names and types stay the same on ROS 1 and ROS 2. There are two exceptions, where 25.01
+changed the type or the driver: base velocity and camera. The ROS 2 APK renames those two at
+startup, and a remap file on the Quest can change them without a rebuild (see `docs/QUEST_INSTALL.md`).
 
 ## Connection
 
@@ -33,7 +34,7 @@ imports `package.msg` or `package.srv` (`server.py`, `resolve_message_name`), so
 | `/head_tp_controller/command` | `geometry_msgs/QuaternionStamped` | `HeadCommander.cs` | `head_tp_controller` | `head_tp_controller` |
 | `/torso_tp_controller/command` | `std_msgs/Int32` (−1, 0, +1 steps) | `TorsoCommander.cs` | `torso_tp_controller` | `torso_tp_controller` |
 | `/gripper_tp_controller/command` | `std_msgs/Int32` (−1, 0, +1 steps) | `GripperCommander.cs` | `gripper_tp_controller` | `gripper_tp_controller` |
-| `/mobile_base_controller/cmd_vel` | `geometry_msgs/Twist` | `BaseCommander.cs` | PAL base controller | **TBD**: checking 25.01 (diff_drive 4.x may take only `TwistStamped`; `twist_mux` sits in front) |
+| ROS 1: `/mobile_base_controller/cmd_vel`, ROS 2: **`/key_vel`** | `geometry_msgs/Twist` | `BaseCommander.cs` | PAL base controller | PAL `twist_mux` input `key_vel` (priority 90, timeout 0.5 s). The joystick (100) overrides the headset. On 25.01 `mobile_base_controller/cmd_vel` is `TwistStamped`, so Unity must not publish there. |
 | `/audio_out/audio` | `audio_common_msgs/AudioData` | `AudioRecorder.cs` | `audio_play` (only with `TELEPRESENCE_AUDIO=true`) | `audio_play` (PAL `audio_common` 2.0.1) |
 
 The tp controllers drop out (hold position) when no command arrives for 0.25 s. They are
@@ -44,18 +45,27 @@ inactive until the session switches them in (see "Controller switching").
 | Topic | Type | Unity script | Published by (ROS 1) | Published by (ROS 2) |
 |---|---|---|---|---|
 | `/joint_states` | `sensor_msgs/JointState` | `TiagoJointStateReader.cs` | PAL | PAL `joint_state_broadcaster` |
-| `/xtion/rgb/image_raw/compressed` | `sensor_msgs/CompressedImage` | `ImageSubscriber.cs` | PAL camera + image_transport | **TBD**: checking the 25.01 camera topic; relay on TIAGo if renamed |
+| ROS 1: `/xtion/rgb/image_raw/compressed`, ROS 2: **`/head_front_camera/rgb/image_raw/compressed`** | `sensor_msgs/CompressedImage` | `ImageSubscriber.cs` | PAL camera + image_transport | PAL Astra driver (`tiago_rgbd_sensors`) + `compressed_image_transport` |
 | `/mobile_base_controller/odom` | `nav_msgs/Odometry` | `TiagoBaseOdomSubscriber.cs` | PAL | PAL `mobile_base_controller` |
-| `/odom_mocap` | `nav_msgs/Odometry` | `TiagoMocapFollower.cs` | `pose_to_odom.py` (archimedes) | same node on ROS 2 (archimedes, Humble in Docker) |
-| `/puck_mocap` | `nav_msgs/Odometry` | `PuckMocapFollower.cs` | `puck_pose_to_odom.py` (archimedes) | same, ROS 2 |
-| `/natnet_ros/table/pose` | `geometry_msgs/PoseStamped` | `TrackedFurniture.cs` | `natnet_ros_cpp` (archimedes) | ROS 2 NatNet driver, same topic names |
-| `/natnet_ros/shelf/pose` | `geometry_msgs/PoseStamped` | `TrackedFurniture.cs` | `natnet_ros_cpp` | same |
+| `/odom_mocap` | `nav_msgs/Odometry` | `TiagoMocapFollower.cs` | `pose_to_odom.py` (archimedes) | `mocap_pose_to_odom.py` (**on TIAGo**) |
+| `/puck_mocap` | `nav_msgs/Odometry` | `PuckMocapFollower.cs` | `puck_pose_to_odom.py` (archimedes) | `mocap_pose_to_odom.py` (on TIAGo) |
+| `/natnet_ros/table/pose` | `geometry_msgs/PoseStamped` | `TrackedFurniture.cs` | `natnet_ros_cpp` (archimedes) | `natnet_bridge` (on TIAGo), same names and values |
+| `/natnet_ros/shelf/pose` | `geometry_msgs/PoseStamped` | `TrackedFurniture.cs` | `natnet_ros_cpp` | `natnet_bridge` (on TIAGo) |
 | `/audio_in/audio` | `audio_common_msgs/AudioData` | `AudioPlayer.cs` | `audio_capture` (only with audio on) | `audio_capture` |
 | `/head_controller/state` | `std_msgs/Float32MultiArray` | `HeadSubscriber.cs` | **type mismatch**: PAL publishes `control_msgs/JointTrajectoryControllerState`, so Unity never received data | same mismatch on ROS 2, plus a type-conflict warning. Disable in the ROS 2 build. |
 
-Mocap topics come from archimedes, not TIAGo. On ROS 2 they reach TIAGo's endpoint through DDS,
-so archimedes must use the same `ROS_DOMAIN_ID` and RMW as TIAGo (see `config/puppet.env`). Unity
-shows "mocap: no data" when they are absent.
+On ROS 2 the OptiTrack bridge runs on TIAGo: Motive (gaia) streams NatNet straight to the robot.
+PAL's 25.01 CycloneDDS config allows only unicast with `localhost` peers, so DDS from another
+machine would need robot-side changes. Running on TIAGo needs none. Unity shows "mocap: no data"
+when the topics are absent.
+
+**QoS (ROS 2):** PUPPET starts the endpoint through `puppet_endpoint.py`, which subscribes
+**best-effort** on Unity's behalf. That matches both reliable and best-effort publishers, such as
+camera sensor-data QoS. Publishers and services keep the endpoint's defaults.
+
+**Header stamps:** Unity stamps commands with its own time since app start. The tp controllers
+use stamps only as differences between consecutive commands; the 0.25 s input timeout uses the
+robot's receive time. Nothing is rejected by stamp age.
 
 ## Services (Unity is the client)
 
@@ -99,4 +109,7 @@ ROS 2 this uses `/controller_manager/switch_controller` (`activate_controllers` 
 
 ## Changelog
 
+- 2026-11-26: 25.01 names read from PAL's tiago-38 image. Base to `/key_vel`, camera to
+  `/head_front_camera/...`, mocap on TIAGo, best-effort endpoint subscriptions. `/head_controller/state`
+  is PAL's `control_msgs/JointTrajectoryControllerState` on both OSes; `HeadSubscriber` is off in the ROS 2 build.
 - 2026-11-26: first version, from `puppet_unity`'s inventory of `MAIN PUPPET SCENE.unity`.

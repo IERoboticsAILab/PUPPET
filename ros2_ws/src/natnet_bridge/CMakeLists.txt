@@ -34,7 +34,8 @@ add_executable(natnet_bridge src/natnet_bridge.cpp)
 target_include_directories(natnet_bridge PRIVATE "${NATNET_SDK_DIR}/include")
 target_link_libraries(natnet_bridge "${NATNET_SDK_DIR}/lib/libNatNet.so")
 ament_target_dependencies(natnet_bridge rclcpp geometry_msgs tf2_ros)
-set_target_properties(natnet_bridge PROPERTIES INSTALL_RPATH "$ORIGIN/../..")
+# install/lib/natnet_bridge/natnet_bridge finds install/lib/libNatNet.so
+set_target_properties(natnet_bridge PROPERTIES INSTALL_RPATH "$ORIGIN/..")
 
 install(TARGETS natnet_bridge DESTINATION lib/${PROJECT_NAME})
 install(FILES "${NATNET_SDK_DIR}/lib/libNatNet.so" DESTINATION lib)
