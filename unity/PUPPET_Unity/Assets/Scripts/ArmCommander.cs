@@ -50,6 +50,12 @@ public class ArmCommander : MonoBehaviour
     private bool motionEnabled = false;
     private bool armExtended = false;
     private bool processingServiceRequest = false;
+    private string pendingMotion = null;
+
+    // Read by Puppet.PuppetStatus for the in-headset status line.
+    public bool MotionEnabled => motionEnabled;
+    public bool ArmExtended => armExtended;
+    public bool WaitingForArmMotion => processingServiceRequest;
 
     private bool initialPositionSet = false;
     private bool initialOrientationSet = false;
@@ -175,6 +181,7 @@ public class ArmCommander : MonoBehaviour
 
         motionEnabled = !motionEnabled;
         Debug.Log($"Arm motion {(motionEnabled ? "ENABLED" : "DISABLED")}");
+        if (!motionEnabled) Puppet.PuppetStatus.ClearArm();
     }
 
     void OnExtendArm(InputAction.CallbackContext context)
@@ -189,6 +196,8 @@ public class ArmCommander : MonoBehaviour
 
             awaitingResponseUntilTimeout = Time.time + (armExtended ? 15.0f : 10.0f);
             processingServiceRequest = true;
+            pendingMotion = motion;
+            Puppet.PuppetStatus.ReportArm($"Arm: '{motion}' sent, waiting for the robot ...", false, 0f);
         }
     }
 
@@ -286,11 +295,14 @@ public class ArmCommander : MonoBehaviour
             wristTwistAngle = 0f;
             armExtended = !armExtended;
             Debug.Log($"Arm {(armExtended ? "EXTENDED" : "HOME")}");
+            Puppet.PuppetStatus.ReportArm($"Arm: '{pendingMotion}' done", false, 3f);
         }
         else
         {
             Debug.LogError($"Arm motion failed: {response.message}");
+            Puppet.PuppetStatus.ReportArm($"Arm motion '{pendingMotion}' FAILED: {response.message}", true, 15f);
         }
+        pendingMotion = null;
 
         awaitingResponseUntilTimeout = -1;
         processingServiceRequest = false;
@@ -298,6 +310,20 @@ public class ArmCommander : MonoBehaviour
 
     void Update()
     {
+        // The service never answered (arm_motion node down, endpoint lost). Turn arm teleop off
+        // instead of leaving it stuck; the operator re-enables it, which also resets the reference pose.
+        if (processingServiceRequest && awaitingResponseUntilTimeout > 0 && Time.time > awaitingResponseUntilTimeout)
+        {
+            Debug.LogWarning($"Arm motion '{pendingMotion}' timed out: no answer from {serviceName}");
+            Puppet.PuppetStatus.ReportArm(
+                $"Arm motion '{pendingMotion}' got NO ANSWER from {serviceName}. Arm teleop turned off; enable it again to retry.",
+                true, 20f);
+            awaitingResponseUntilTimeout = -1;
+            processingServiceRequest = false;
+            pendingMotion = null;
+            motionEnabled = false;
+        }
+
         if (!motionEnabled || processingServiceRequest) return;
         if (!armExtended || !initialPositionSet || !initialOrientationSet) return;
 
@@ -325,11 +351,7 @@ public class ArmCommander : MonoBehaviour
         double now = Time.realtimeSinceStartupAsDouble;
 
         ros.Publish(topicName, new PoseStampedMsg(
-            new HeaderMsg(
-                seq: ++seq,
-                stamp: new TimeMsg((uint)now, (uint)((now % 1.0) * 1e9)),
-                frame_id: "base_footprint"
-            ),
+            Puppet.RosHeader.Make(now, ++seq, "base_footprint"),
             new PoseMsg(
                 new PointMsg(currentPosition.z, -currentPosition.x, currentPosition.y),
                 new QuaternionMsg(currentOrientation.z, currentOrientation.x, currentOrientation.y, currentOrientation.w)
