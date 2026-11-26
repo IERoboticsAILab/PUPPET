@@ -60,13 +60,14 @@ def generate_launch_description():
         name="tp_arm_motion",
         output="screen",
         emulate_tty=True,
-        arguments=["--motion", motion],
+        arguments=["--motion", motion, "--skip-planning", LaunchConfiguration("skip_planning")],
     )
 
     return LaunchDescription([
         DeclareLaunchArgument("tcp_ip", default_value="0.0.0.0", description="address ROS-TCP-Endpoint listens on"),
         DeclareLaunchArgument("tcp_port", default_value="10000", description="port Unity connects to"),
         DeclareLaunchArgument("motion", default_value="", description="PlayMotion2 motion to play once tp_arm_motion is up"),
+        DeclareLaunchArgument("skip_planning", default_value="false", description="ArmMotion without MoveIt planning (as ROS 1: false)"),
         endpoint,
         spawner,
         # The switcher and arm_motion need the tp controllers loaded; start them once the spawner is done.

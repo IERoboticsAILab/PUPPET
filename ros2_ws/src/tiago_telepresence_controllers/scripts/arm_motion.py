@@ -10,6 +10,7 @@ The tp controller list is read on every call, never cached at startup (that was 
 """
 
 import argparse
+import os
 import signal
 import sys
 import threading
@@ -26,6 +27,9 @@ from rclpy.signals import SignalHandlerOptions
 from rclpy.utilities import remove_ros_args
 
 from tiago_telepresence_controllers.srv import ArmMotion
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from play_motion import add_motions, default_motions_file  # noqa: E402  (installed next to this script)
 
 CM = "/controller_manager"
 
@@ -145,12 +149,25 @@ def main():
     parser.add_argument("--initial-state", default="home", help="motion the arm is assumed to be in")
     parser.add_argument("--action", default="/play_motion2")
     parser.add_argument("--timeout", type=float, default=10.0, help="seconds to wait for a motion")
-    parser.add_argument("--skip-planning", action="store_true")
+    parser.add_argument("--skip-planning", nargs="?", const="true", default="false",
+                        type=lambda v: str(v).lower() in ("1", "true", "yes"),
+                        help="play motions without MoveIt planning (true/false)")
+    parser.add_argument("--motions-file", default=None, help="PUPPET motions to register with play_motion2")
     args, _ = parser.parse_known_args(remove_ros_args(sys.argv)[1:])
 
     rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
     signal.signal(signal.SIGINT, raise_interrupt)
     signal.signal(signal.SIGTERM, raise_interrupt)
+
+    # Register PUPPET's motions (e.g. `extend`) with PAL's running play_motion2; nothing on disk changes.
+    helper = Node("tp_arm_motion_setup")
+    try:
+        added = add_motions(helper, args.motions_file or default_motions_file(), timeout=30.0)
+        helper.get_logger().info(f"added PUPPET motions to play_motion2: {added}" if added else "PUPPET motions already known")
+    except RuntimeError as e:
+        helper.get_logger().error(f"{e}. The B button only plays motions play_motion2 already knows.")
+    helper.destroy_node()
+
     node = ArmMotionNode(args)
     executor = MultiThreadedExecutor(num_threads=4)
     executor.add_node(node)

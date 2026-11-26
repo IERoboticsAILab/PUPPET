@@ -56,7 +56,7 @@ install(TARGETS ${PROJECT_NAME}_controllers
 )
 install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
-install(PROGRAMS scripts/arm_motion.py scripts/tp_controller_switcher.py scripts/puppet_endpoint.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS scripts/arm_motion.py scripts/tp_controller_switcher.py scripts/puppet_endpoint.py scripts/play_motion.py DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
