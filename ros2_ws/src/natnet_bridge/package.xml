@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>natnet_bridge</name>
+  <version>1.0.0</version>
+  <description>OptiTrack Motive (NatNet SDK 4) rigid bodies to ROS 2 PoseStamped topics, with the same names and values as the ROS 1 natnet_ros_cpp.</description>
+  <maintainer email="123842829+rorosaga@users.noreply.github.com">Rodrigo Sagastegui</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2_ros</depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

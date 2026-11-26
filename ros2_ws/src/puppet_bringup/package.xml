@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>puppet_bringup</name>
+  <version>2.0.0</version>
+  <description>archimedes side of PUPPET on ROS 2: OptiTrack poses to odometry for Unity.</description>
+  <maintainer email="123842829+rorosaga@users.noreply.github.com">Rodrigo Sagastegui</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>natnet_bridge</exec_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>
