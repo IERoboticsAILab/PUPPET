@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -11,12 +12,16 @@ using UnityEngine;
 //   Unity -batchmode -projectPath . -executeMethod PuppetStatusPlayTest.Run \
 //         -puppetTestOut /tmp/out -puppetTestIp 127.0.0.1 -puppetTestSeconds 14
 //
+// -puppetTestArm 1 also presses the extend-arm button through ArmCommander's own handlers
+// (enable arm motion, then 'offer', then 'home' once the robot answers). Only against the
+// mock robot (scripts/ros2/mock_robot.sh on ros2-port), never a real TIAGo.
+//
 // Writes <out>/status.txt and <out>/status_<t>.png, then exits. Leaves no changes in the project.
 [InitializeOnLoad]
 public static class PuppetStatusPlayTest
 {
     const string Key = "PuppetStatusPlayTest.Out";
-    static readonly float[] SampleAt = { 1f, 3f, 6f, 9f, 12f };
+    static float[] SampleAt = { 1f, 3f, 6f, 9f, 12f };
 
     static string Arg(string name, string fallback)
     {
@@ -41,6 +46,7 @@ public static class PuppetStatusPlayTest
 
         SessionState.SetString(Key, Path.GetFullPath(outDir));
         SessionState.SetFloat(Key + ".seconds", float.Parse(Arg("-puppetTestSeconds", "13")));
+        SessionState.SetBool(Key + ".arm", Arg("-puppetTestArm", "0") == "1");
         EditorSceneManager.OpenScene("Assets/MAIN PUPPET SCENE.unity");
         EditorApplication.EnterPlaymode();
     }
@@ -59,8 +65,15 @@ public static class PuppetStatusPlayTest
     {
         var outDir = SessionState.GetString(Key, "");
         if (string.IsNullOrEmpty(outDir) || !EditorApplication.isPlaying) return;
-        if (startedAt < 0) startedAt = Time.realtimeSinceStartup;
+        if (startedAt < 0)
+        {
+            startedAt = Time.realtimeSinceStartup;
+            float total = SessionState.GetFloat(Key + ".seconds", 13f);
+            if (total > 13f)  // long runs: a sample every 3 s
+                SampleAt = System.Linq.Enumerable.Range(0, (int)(total / 3f)).Select(i => 1f + 3f * i).ToArray();
+        }
         float t = Time.realtimeSinceStartup - startedAt;
+        if (SessionState.GetBool(Key + ".arm", false)) ArmTest(t);
 
         if (next < SampleAt.Length && t >= SampleAt[next])
         {
@@ -94,6 +107,45 @@ public static class PuppetStatusPlayTest
             if (File.Exists(backup)) File.Copy(backup, settingsPath, true); else File.Delete(settingsPath);
             File.Delete(backup);
             EditorApplication.Exit(0);
+        }
+    }
+
+    // ---- extend-arm button test (mock robot only) ----
+    static int armStep;
+    static ArmCommander arm;
+
+    static void Press(string method)
+    {
+        var m = typeof(ArmCommander).GetMethod(method, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        m.Invoke(arm, new object[] { default(UnityEngine.InputSystem.InputAction.CallbackContext) });
+    }
+
+    static void ArmTest(float t)
+    {
+        if (arm == null) arm = Object.FindObjectOfType<ArmCommander>();
+        if (arm == null) return;
+        switch (armStep)
+        {
+            case 0 when t >= 4f:
+                Press("OnEnableMotion");
+                Press("OnExtendArm");
+                log.AppendLine($"[arm] t={t:F1}s enable + extend-arm button ('offer'), waiting={arm.WaitingForArmMotion}");
+                armStep = 1;
+                break;
+            case 1 when !arm.WaitingForArmMotion:
+                log.AppendLine($"[arm] t={t:F1}s reply: extended={arm.ArmExtended}, teleop={arm.MotionEnabled}");
+                if (arm.ArmExtended)
+                {
+                    Press("OnExtendArm");
+                    log.AppendLine($"[arm] t={t:F1}s extend-arm button again ('home'), waiting={arm.WaitingForArmMotion}");
+                    armStep = 2;
+                }
+                else armStep = 3;
+                break;
+            case 2 when !arm.WaitingForArmMotion:
+                log.AppendLine($"[arm] t={t:F1}s reply: extended={arm.ArmExtended}, teleop={arm.MotionEnabled}");
+                armStep = 3;
+                break;
         }
     }
 

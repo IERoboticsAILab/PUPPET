@@ -14,6 +14,11 @@ For the APKs built on 2026-11-26 from branch `unity-ros2`. Install and status me
   - Endpoint sends an error (`Service ... is not available`): shown as a yellow `Error:` line.
   - Endpoint stops: red `connection ... LOST (retrying)`.
   - Address list (menu button) and the arm-motion timeout message render and are readable over the bright lab scene.
+- **ROS 2 end to end against the mock TIAGo** (`scripts/ros2/mock_robot.sh` on `ros2-port`: PAL's 25.01 image, PAL's play_motion2 motions, PUPPET's ROS 2 session and ROS-TCP-Endpoint `main-ros2`). This ran the main scene in Play mode compiled for ROS 2 (as in `PUPPET-ros2.apk`), connected to `127.0.0.1:10000`:
+  - Connected over ROS 2. `/joint_states` was received for the whole 45 s, with no deserialization errors.
+  - The 25.01 names were applied (`/key_vel`, `/head_front_camera/rgb/image_raw`). The camera showed `never received`, as expected: the mock has no camera.
+  - Extend-arm button, pressed through `ArmCommander`'s own handlers: `'offer'` was answered after about 9 s (arm extended, `ARM TELEOP ON`). Then `'home'` was answered after about 16 s (`'home' done`, back to `arm at home`). The old 15 s timeout would have cut 'home' off; it's now 35 s.
+  - Not checked here: whether the arm commands Unity published moved the mock's joints. That is puppet_ros2's `mock_test.sh`, which drives the same topics with a fake headset.
 - **What Unity registers with the endpoint:** every topic, type and service the ROS 1 Play-mode run registered (fake endpoint log) is in the contract `docs/ROS2_INTERFACE.md` (branch `ros2-port`).
 
 To repeat a test: close the Editor, run `python3 unity/tools/fake_endpoint.py --protocol ROS1 --joint-states`, then from `unity/PUPPET_Unity` run
