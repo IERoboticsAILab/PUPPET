@@ -52,7 +52,7 @@ Do these in order. Stop at the first one that fails and note what the headset sa
 - [ ] Torso and gripper commands work.
 - [ ] Base: a small thumbstick push moves the base. The ROS 2 app publishes `geometry_msgs/Twist` on `/key_vel`, which goes into twist_mux. If the base doesn't move, check `ros2 topic echo /key_vel` on the robot, and that nothing with higher priority is active in twist_mux (the joystick wins at 100).
 - [ ] Arm: enable arm motion. The yellow `arm enabled (arm at home)` appears. Press B: `Arm: 'offer' sent, waiting for the robot ...`, the arm moves to offer, then `Arm: 'offer' done` and `ARM TELEOP ON`.
-- [ ] Arm teleop follows the controller as on ROS 1. Press B again: the arm goes home.
+- [ ] Arm teleop follows the controller as on ROS 1. Press B again: the arm goes home. That takes about 16 s, and the status shows `waiting for the robot ...` until the robot answers. That's normal, not a freeze.
 - [ ] If B gives `got NO ANSWER` or `FAILED`, note the message: the problem is `/tp_arm_motion/command` on the robot. Teleop is off after a timeout until you enable it again; that is intended.
 
 **Rollback (only if 25.01 is abandoned)**

@@ -81,9 +81,9 @@ A short text line sits at the bottom of your view, drawn over everything. When e
 | `Base odometry: ...` | yellow | No `/mobile_base_controller/odom`. |
 | `mocap: no data`, `mocap (robot): no data` | grey | No OptiTrack data (`/odom_mocap`, `/puck_mocap`, `/natnet_ros/*`). Normal when NatNet on archimedes or Motive isn't running. The tracked table, shelf and robot base don't move. |
 | `audio: no data` | grey | Normal: audio is off unless `TELEPRESENCE_AUDIO=true`. |
-| `Arm: 'offer' sent, waiting for the robot ...` | grey | The B-button motion request has been sent to `/tp_arm_motion/command`. |
+| `Arm: 'offer' sent, waiting for the robot ...` | grey | The B-button motion request has been sent to `/tp_arm_motion/command`. The robot answers when the motion is done: a few seconds for 'offer', about 16 s for 'home'. |
 | `Arm motion 'offer' FAILED: <reason>` | red | The robot refused the motion. The reason comes from the robot. |
-| `Arm motion 'offer' got NO ANSWER ... Arm teleop turned off` | red | No reply after 10 s (15 s for 'home'). The arm_motion node is probably down. Arm teleop is turned off on purpose; enable it again to retry. |
+| `Arm motion 'offer' got NO ANSWER ... Arm teleop turned off` | red | No reply after 35 s. The arm_motion node is probably down. Arm teleop is turned off on purpose; enable it again to retry. |
 | `ARM TELEOP ON` / `arm enabled (arm at home)` | yellow | Arm teleoperation is on. This line is a reminder, not an error. |
 | `Error: ...` | yellow | The last errors the app or the endpoint logged (for example a service that doesn't exist on the robot). Each one shows for 20 s. |
 

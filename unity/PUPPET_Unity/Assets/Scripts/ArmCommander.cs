@@ -78,6 +78,7 @@ public class ArmCommander : MonoBehaviour
     private uint seq = 0;
 
     private const string HOME_MOTION = "home";
+    private const float ArmMotionTimeoutSeconds = 35f;
     private const string EXTEND_MOTION = "offer";
 
     private bool gripperColliding = false;
@@ -194,7 +195,9 @@ public class ArmCommander : MonoBehaviour
             var request = new ArmMotionRequest(motion);
             ros.SendServiceMessage<ArmMotionResponse>(serviceName, request, OnArmMotionResponse);
 
-            awaitingResponseUntilTimeout = Time.time + (armExtended ? 15.0f : 10.0f);
+            // PAL's 'home' from 'offer' takes ~13 s, plus ~3 s of controller hand-over, and the
+            // robot's arm_motion waits up to 30 s for the motion to finish before answering.
+            awaitingResponseUntilTimeout = Time.time + ArmMotionTimeoutSeconds;
             processingServiceRequest = true;
             pendingMotion = motion;
             Puppet.PuppetStatus.ReportArm($"Arm: '{motion}' sent, waiting for the robot ...", false, 0f);
