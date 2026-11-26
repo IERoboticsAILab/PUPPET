@@ -4,7 +4,7 @@
     check.py owner tp|pal [TIMEOUT]   wait until the joints belong to our tp controllers / PAL's
     check.py snapshot FILE            save /joint_states positions as JSON
     check.py moved BEFORE AFTER       assert the drive test moved each group the right way
-    check.py at-motion extend         assert the arm is at config/telepresence_motions.yaml's pose
+    check.py at-motion NAME           assert the arm is at the motion's final pose (PUPPET's or PAL's)
     check.py ee-snapshot FILE         save the hand position (torso_lift_link -> gripper_grasping_frame)
     check.py ee-moved BEFORE AFTER DX DY DZ   assert the hand moved by (DX, DY, DZ) m, +-3 mm
 """
@@ -78,9 +78,17 @@ def moved(before, after):
         (ok if good else fail)(f"{what}: " + ", ".join(f"{k}={v:+.3f}" for k, v in d.items() if abs(v) > 1e-4))
 
 
+PAL_GENERAL = "/opt/pal/alum/share/tiago_bringup/config/motions/tiago_motions_general.yaml"
+
+
 def at_motion(node, name):
-    path = get_package_share_directory("tiago_telepresence_controllers") + "/config/telepresence_motions.yaml"
-    m = next(iter(yaml.safe_load(open(path)).values()))["ros__parameters"]["motions"][name]
+    """The arm is at the last point of `name`, from PUPPET's motions or PAL's general motions."""
+    m = None
+    for path in (get_package_share_directory("tiago_telepresence_controllers") + "/config/telepresence_motions.yaml", PAL_GENERAL):
+        motions = next(iter(yaml.safe_load(open(path)).values()))["ros__parameters"]["motions"]
+        m = m or motions.get(name)
+    if m is None:
+        fail(f"motion {name} not defined")
     target = dict(zip(m["joints"], m["positions"][-len(m["joints"]):]))
     q = joint_positions(node)
     err = max(abs(q[j] - v) for j, v in target.items())

@@ -94,7 +94,12 @@ and lists what arrives per topic.
 scripts/ros2/build.sh --test     # build + unit tests in PAL's image
 scripts/ros2/mock_test.sh        # a full session on a simulated TIAGo 38, with a fake headset over TCP
 scripts/ros2/runner_test.sh      # ./puppet doctor/up/check/reset-arm/down against a fake TIAGo over SSH
+scripts/ros2/mock_robot.sh       # a simulated TIAGo with PUPPET running; endpoint on this machine's port 10000
 ```
+
+`mock_robot.sh` is for testing the Quest app or the Unity editor without the robot: connect to the
+address it prints, and use the ROS 2 build. Joints, tp controllers and the extend-arm button
+(`offer`/`home`) are live. Camera, base, mocap and audio are not simulated.
 
 The mock robot is PAL's own TIAGo 38 URDF with mock hardware, PAL's controller names and PAL's
 PlayMotion2. It checks the controller switch both ways, Unity's view, torso, gripper, head and arm

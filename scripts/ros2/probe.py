@@ -57,6 +57,16 @@ def controllers(node):
     return {c.name: c.state for c in fut.result().controller} if fut.done() else None
 
 
+def list_motions(node):
+    from play_motion2_msgs.srv import ListMotions
+    cli = node.create_client(ListMotions, "/play_motion2/list_motions")
+    if not cli.wait_for_service(timeout_sec=5.0):
+        return None
+    fut = cli.call_async(ListMotions.Request())
+    rclpy.spin_until_future_complete(node, fut, timeout_sec=5.0)
+    return list(fut.result().motion_keys) if fut.done() else None
+
+
 def sample(node, topics, seconds):
     """Counts messages per topic for `seconds` (best effort: matches any publisher)."""
     counts, last = collections.Counter(), {}
@@ -136,9 +146,17 @@ def main():
             else:
                 report("ok", "tp controllers active (headset drives the robot)")
 
-    # --- PlayMotion2
+    # --- PlayMotion2, and the motions the Quest's extend-arm button sends (ArmCommander: offer / home)
     if "/play_motion2/_action/status" in types:
-        report("ok", "play_motion2 running")
+        known = list_motions(node)
+        missing = [m for m in ("offer", "home") if known is not None and m not in known]
+        if known is None:
+            report("warn", "play_motion2 running, but list_motions did not answer")
+        elif missing:
+            report("FAIL", f"play_motion2 lacks {missing} (the Quest's extend-arm button sends offer/home)",
+                   "PAL loads them from tiago_bringup tiago_motions_general.yaml; check play_motion2's launch")
+        else:
+            report("ok", "play_motion2 running, knows offer and home (Quest extend-arm button)")
     else:
         report("FAIL" if args.mode == "doctor" else "warn", "play_motion2 not running", "PAL starts it at boot; check the web GUI's module list")
 

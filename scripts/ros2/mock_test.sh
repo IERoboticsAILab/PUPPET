@@ -12,7 +12,8 @@
 #   2. the switcher hands the joints to the tp controllers
 #   3. Unity's view: /joint_states arrives through the endpoint
 #   4. torso, gripper, head and arm commands from the headset move the joints
-#   5. ArmMotion 'extend' through the endpoint: PlayMotion2 plays it, joints come back to us
+#   5. ArmMotion 'offer' / 'home' (what Unity sends) through the endpoint: PlayMotion2 plays PAL's
+#      motions, joints come back to us; PUPPET's 'extend' is registered with play_motion2
 #   6. the keyboard condition (keyboard_teleop) moves the hand by the keyed steps
 #   7. Ctrl+C on the launch file gives the joints back to PAL's controllers
 
@@ -40,7 +41,8 @@ ros2 run controller_manager ros2_control_node --ros-args --params-file $T/mock_c
   -r ~/robot_description:=/robot_description > $LOG/cm.log 2>&1 &
 ros2 run controller_manager spawner joint_state_broadcaster arm_controller head_controller torso_controller gripper_controller \
   --controller-manager-timeout 60 > $LOG/spawn_pal.log 2>&1 || fail_logs
-ros2 run play_motion2 play_motion2_node --ros-args --params-file $T/mock_motions.yaml \
+ros2 run play_motion2 play_motion2_node --ros-args \
+  --params-file /opt/pal/alum/share/tiago_bringup/config/motions/tiago_motions_general.yaml --params-file $T/mock_motions.yaml \
   --params-file $T/mock_motion_planner.yaml \
   -r /play_motion2_executor/robot_description:=/robot_description > $LOG/pm2.log 2>&1 &
 python3 $T/check.py owner pal 30 || fail_logs
@@ -67,10 +69,16 @@ python3 /puppet_scripts/ros2/fake_unity.py 127.0.0.1:10000 --drive-test || fail_
 python3 $T/check.py snapshot /tmp/after.json
 python3 $T/check.py moved /tmp/before.json /tmp/after.json || fail_logs
 
-step "Fake headset: extend-arm button (ArmMotion extend via PlayMotion2)"
-python3 /puppet_scripts/ros2/fake_unity.py 127.0.0.1:10000 --arm-motion extend || fail_logs
-python3 $T/check.py at-motion extend || fail_logs
+step "Fake headset: extend-arm button, as Unity sends it (ArmMotion offer, then home: PAL motions)"
+python3 /puppet_scripts/ros2/fake_unity.py 127.0.0.1:10000 --arm-motion offer || fail_logs
+python3 $T/check.py at-motion offer || fail_logs
 python3 $T/check.py owner tp 20 || fail_logs
+python3 /puppet_scripts/ros2/fake_unity.py 127.0.0.1:10000 --arm-motion home || fail_logs
+python3 $T/check.py at-motion home || fail_logs
+
+step "Start pose of ./puppet up (PUPPET motion extend, registered at runtime)"
+ros2 run tiago_telepresence_controllers play_motion.py list | grep -qx extend || { echo "  FAIL  extend not registered by arm_motion"; fail_logs; }
+echo "  ok    extend registered with play_motion2 by arm_motion.py"
 
 step "Keyboard condition (keyboard_teleop, ROS 2): i i i w = 9 mm forward, 3 mm up"
 # From a pose inside every joint limit (extend has arm_3 past its limit, which bends some directions).

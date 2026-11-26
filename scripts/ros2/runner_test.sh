@@ -36,7 +36,8 @@ python3 $T/make_mock_urdf.py /tmp/tiago.urdf
 ros2 run robot_state_publisher robot_state_publisher --ros-args -p robot_description:="$(cat /tmp/tiago.urdf)" > /tmp/rsp.log 2>&1 &
 ros2 run controller_manager ros2_control_node --ros-args --params-file $T/mock_controllers.yaml -r ~/robot_description:=/robot_description > /tmp/cm.log 2>&1 &
 ros2 run controller_manager spawner joint_state_broadcaster arm_controller head_controller torso_controller gripper_controller > /tmp/sp.log 2>&1
-ros2 run play_motion2 play_motion2_node --ros-args --params-file $T/mock_motions.yaml --params-file $T/mock_motion_planner.yaml \
+ros2 run play_motion2 play_motion2_node --ros-args --params-file /opt/pal/alum/share/tiago_bringup/config/motions/tiago_motions_general.yaml \
+  --params-file $T/mock_motions.yaml --params-file $T/mock_motion_planner.yaml \
   -r /play_motion2_executor/robot_description:=/robot_description > /tmp/pm2.log 2>&1 &
 ros2 topic pub -r 2 /power/is_emergency std_msgs/msg/Bool "{data: false}" > /dev/null 2>&1 &
 sleep 5; touch /tmp/robot_ready

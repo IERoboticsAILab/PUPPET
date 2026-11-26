@@ -148,7 +148,8 @@ def main():
     parser.add_argument("--motion", default="", help="motion to play once at startup")
     parser.add_argument("--initial-state", default="home", help="motion the arm is assumed to be in")
     parser.add_argument("--action", default="/play_motion2")
-    parser.add_argument("--timeout", type=float, default=10.0, help="seconds to wait for a motion")
+    parser.add_argument("--timeout", type=float, default=30.0,
+                        help="seconds to wait for a motion (PAL home from offer takes ~13 s; ROS 1 waited 10 s and cut it)")
     parser.add_argument("--skip-planning", nargs="?", const="true", default="false",
                         type=lambda v: str(v).lower() in ("1", "true", "yes"),
                         help="play motions without MoveIt planning (true/false)")

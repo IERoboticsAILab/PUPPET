@@ -1,15 +1,10 @@
-# PlayMotion2 on the mock robot: PAL's "home" (tiago_motions_general.yaml) is not needed here,
-# a short "home" is enough to test the ArmMotion round trip. "extend" comes from
-# config/telepresence_motions.yaml (loaded too).
+# PlayMotion2 on the mock robot, loaded together with PAL's own
+# tiago_bringup/config/motions/tiago_motions_general.yaml (offer, home, ... exactly as on 25.01).
+# PUPPET's own motions (extend) are added at runtime by arm_motion.py / play_motion.py.
 /**:
   ros__parameters:
     controllers: [arm_controller, head_controller, torso_controller, gripper_controller]
     motions:
-      home:
-        joints: [torso_lift_joint, arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint, arm_7_joint]
-        positions: [0.15, 0.20, -1.34, -0.20, 1.94, -1.57, 1.37, 0.0]
-        times_from_start: [3.0]
-        meta: {name: Home, usage: test, description: home}
       mid:
         joints: [torso_lift_joint, arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint, arm_7_joint]
         positions: [0.15, 0.6, -0.4, -0.6, 1.4, 0.3, 0.6, 0.2]

@@ -71,9 +71,14 @@ robot's receive time. Nothing is rejected by stamp age.
 
 | Service | Type | Unity script | Served by |
 |---|---|---|---|
-| `/tp_arm_motion/command` | `tiago_telepresence_controllers/ArmMotion` | `ArmCommander.cs` (extend-arm button: `offer`, `home`) | `arm_motion.py` (ROS 1: PlayMotion; ROS 2: PlayMotion2) |
+| `/tp_arm_motion/command` | `tiago_telepresence_controllers/ArmMotion` | `ArmCommander.cs` (extend-arm button) | `arm_motion.py` (ROS 1: PlayMotion; ROS 2: PlayMotion2) |
 
-Unity sends one request at a time, with a 10 s or 15 s timeout.
+Unity sends one request at a time, with a 10 s or 15 s timeout. The `command` is a motion name:
+**`offer`** (extend, `EXTEND_MOTION`) or **`home`** (retract, `HOME_MOTION`). Both are PAL's own motions.
+On 25.01 they come from `tiago_bringup/config/motions/tiago_motions_general.yaml`, which PAL's
+play_motion2 launch loads (`offer`: torso 0.296, arm [1.61, −0.93, −3.14, 1.83, −1.577, −0.62, −1.577]).
+`./puppet doctor` checks that play_motion2 knows both. PUPPET's own `extend`
+(`telepresence_motions.yaml`) is only `./puppet up`'s start pose; the Quest never sends it.
 
 ## Custom types
 
