@@ -12,6 +12,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--arm", type=str, default=None)
 parser.add_argument("--motion", type=str, default=None)
 
+MOTION_TIMEOUT = 30.0  # [s] longest PlayMotion goal, approach planning included
+
 def tp_controller_names(cs):
   # Looked up on every switch, not once at startup: tp_arm_motion starts in the same launch
   # file as the spawner, so at startup the *_tp_controller list is often still empty, and
@@ -69,12 +71,19 @@ def execute_arm_motion(command):
   rospy.sleep(3.0) # important
 
   client.send_goal(goal)
-  client.wait_for_result(rospy.Duration(10.0))
+  # home after offer takes about 13 s. A wait that times out returns no result (None), which
+  # used to count as success: the controllers were switched back mid-motion and Unity was told
+  # the motion was done.
+  finished = client.wait_for_result(rospy.Duration(MOTION_TIMEOUT))
   action_res = client.get_result()
   success, err_str = False, None
 
+  if not finished:
+    client.cancel_goal()
+    err_str = "Motion '%s' did not finish within %.0f s" % (command, MOTION_TIMEOUT)
+    rospy.logerr(err_str)
   # for some reason, action_res is sometimes None
-  if action_res is None or action_res.error_code == PlayMotionResult.SUCCEEDED:
+  elif action_res is None or action_res.error_code == PlayMotionResult.SUCCEEDED:
     rospy.loginfo("Motion '%s' completed." % command)
     current_state = command
     success = True
