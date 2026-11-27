@@ -13,6 +13,8 @@ This branch replaces the six-terminal startup with a single command on the `arch
 ./puppet down       # stop everything in reverse order
 ```
 
+Since branch `ros1-demo`, `up` ends in the live status view (`./puppet status`) instead of tmux, and `./puppet logs` shows the process logs. The demo runbook is [`DEMO.md`](DEMO.md).
+
 `./puppet up` runs the same commands as Sections 7–8 and 11 of the ReadMe. Every long-running process still gets its own window with its own log, now as tmux windows instead of separate terminals:
 
 | Before (ReadMe §11) | Now |

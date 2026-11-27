@@ -2,6 +2,8 @@
 
 > **Setup and operating guide — October 2026.** This README explains how PUPPET is put together, how to reproduce its software environment, and how the lab team starts and operates the system. Commands marked **[VERIFY]** still need to be checked against the deployed configuration. Do not use an unverified command, IP address, controller setting, or coordinate transform to move the physical robot. This version is based on the project notes and operator workflow; it has not yet been merged with the README on GitHub.
 
+> **Running the demo?** Follow the one-page runbook [`docs/DEMO.md`](docs/DEMO.md): `./puppet up`, the live status view, the headset controls and the common fixes.
+
 **PUPPET** is a remote robotics laboratory built around a real PAL Robotics TIAGo robot. A researcher enters a virtual version of the laboratory through a Meta Quest 3 headset and controls the real robot through a Unity interface. ROS handles robot communication, while OptiTrack measures the positions of the robot and the object so that the virtual scene stays aligned with the physical lab. The research task used to test the system is to pick up an object from a table and place it on a shelf. The project also includes scripts for checking and analyzing experimental data.
 
 ## Contents
