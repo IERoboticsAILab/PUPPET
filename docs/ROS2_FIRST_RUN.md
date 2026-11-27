@@ -65,7 +65,7 @@ unless they say "control window" (`./puppet attach`, window `control`, a shell o
 ## 6. Head and torso only, motors on
 
 - [ ] Release the e-stop (twist up, then the blinking green button). Clear area around the robot.
-- [ ] `./puppet up` and answer the questions; the start pose (`extend`) plays through PlayMotion2.
+- [ ] `./puppet up` and answer the questions; the start pose (`extend`) plays through PlayMotion2. The elbow (`arm_3_joint`) bends slightly less than on Gallium (1.50 instead of 1.7 rad, inside its limit). This is expected.
       Check it is the same pose as on Gallium.
 - [ ] Headset: small head motions. Then torso up/down one step at a time.
 - [ ] `./puppet check` is all `ok` (mocap needs step 4).
