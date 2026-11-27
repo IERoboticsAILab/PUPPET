@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""Mock of `rosrun play_motion run_motion NAME`: send the goal to /play_motion and wait."""
+import sys
+import actionlib
+import rospy
+from play_motion_msgs.msg import PlayMotionAction, PlayMotionGoal
+
+rospy.init_node("run_motion", anonymous=True)
+client = actionlib.SimpleActionClient("/play_motion", PlayMotionAction)
+client.wait_for_server()
+client.send_goal(PlayMotionGoal(motion_name=sys.argv[1], skip_planning=False))
+client.wait_for_result()
+res = client.get_result()
+print("Motion '%s': %s" % (sys.argv[1], "succeeded" if res.error_code == 1 else "failed: " + res.error_string))
+sys.exit(0 if res.error_code == 1 else 1)

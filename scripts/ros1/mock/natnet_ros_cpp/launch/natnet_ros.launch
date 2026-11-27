@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!-- Same arguments as the real natnet_ros.launch, so optitrack_nodes.launch includes it unchanged. -->
+<launch>
+  <arg name="log_internals" default="false"/>
+  <arg name="log_frames" default="false"/>
+  <arg name="log_latencies" default="false"/>
+  <arg name="serverIP" default="192.168.0.100"/>
+  <arg name="clientIP" default="192.168.0.103"/>
+  <arg name="serverType" default="multicast"/>
+  <arg name="multicastAddress" default="239.255.42.99"/>
+  <arg name="serverCommandPort" default="1510"/>
+  <arg name="serverDataPort" default="1511"/>
+  <arg name="globalFrame" default="world"/>
+  <arg name="pub_rigid_body" default="true"/>
+  <arg name="pub_rigid_body_marker" default="true"/>
+  <arg name="pub_individual_marker" default="false"/>
+  <arg name="pub_pointcloud" default="false"/>
+  <arg name="conf_file" default="initiate.yaml"/>
+  <node name="natnet_ros" pkg="natnet_ros_cpp" type="fake_natnet.py" output="screen">
+    <param name="bodies" value="$(optenv MOCK_BODIES umh_tiago_base umh_object_mahika)"/>
+  </node>
+</launch>

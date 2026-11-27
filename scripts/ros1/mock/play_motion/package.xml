@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>play_motion</name>
+  <version>0.0.0</version>
+  <description>Mock of PAL's play_motion package: only its run_motion client, for the offline PUPPET test.</description>
+  <maintainer email="123842829+rorosaga@users.noreply.github.com">Rodrigo Sagastegui</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>play_motion_msgs</exec_depend>
+</package>

@@ -1,0 +1,11 @@
+# PAL's offer and home (tiago_bringup motions), which the Quest's B button asks for.
+play_motion:
+  motions:
+    offer:
+      joints: [torso_lift_joint, arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint, arm_7_joint]
+      points:
+      - {positions: [0.296, 1.61, -0.93, -3.14, 1.83, -1.577, -0.62, -1.577], time_from_start: 7.0}
+    home:
+      joints: [torso_lift_joint, arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint, arm_7_joint]
+      points:
+      - {positions: [0.15, 0.5, -1.34, -0.48, 1.94, -1.49, 1.37, 0.0], time_from_start: 13.0}

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>puppet_mock</name>
+  <version>0.1.0</version>
+  <description>Offline stand-in for TIAGo 38 on Gallium, for testing ./puppet and the telepresence stack without the robot.</description>
+  <maintainer email="123842829+rorosaga@users.noreply.github.com">Rodrigo Sagastegui</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>roscpp</depend>
+  <depend>hardware_interface</depend>
+  <depend>controller_manager</depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>actionlib</exec_depend>
+  <exec_depend>play_motion_msgs</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+</package>

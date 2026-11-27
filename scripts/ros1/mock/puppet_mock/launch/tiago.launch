@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!-- What TIAGo (Gallium) runs after boot, as far as PUPPET is concerned: robot_description,
+     fake hardware with PAL's controllers running, PAL's PlayMotion (/play_motion, fake) with
+     offer/home, and the e-stop topic. -->
+<launch>
+  <arg name="motion_slowdown" default="1.0"/>
+  <arg name="estop" default="False"/>
+  <param name="robot_description" textfile="$(find puppet_mock)/urdf/tiago38_kinematics.urdf"/>
+  <rosparam file="$(find puppet_mock)/config/controllers.yaml" command="load"/>
+  <rosparam file="$(find puppet_mock)/config/pal_motions.yaml" command="load"/>
+  <node name="fake_hw" pkg="puppet_mock" type="fake_hw" output="screen">
+    <remap from="controller_manager/list_controllers" to="controller_manager/raw_list_controllers"/>
+  </node>
+  <node name="pal_list_controllers" pkg="puppet_mock" type="pal_list_controllers.py" output="screen"/>
+  <node name="pal_controllers_spawner" pkg="controller_manager" type="spawner" output="screen"
+        args="joint_state_controller arm_controller torso_controller head_controller gripper_controller"/>
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+  <node name="play_motion" pkg="puppet_mock" type="fake_play_motion.py" output="screen">
+    <param name="slowdown" value="$(arg motion_slowdown)"/>
+  </node>
+  <node name="estop" pkg="rostopic" type="rostopic" args="pub -r 1 /power_status/is_emergency std_msgs/Bool $(arg estop)"/>
+</launch>

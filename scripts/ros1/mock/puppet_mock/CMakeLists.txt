@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.0.2)
+project(puppet_mock)
+find_package(catkin REQUIRED COMPONENTS roscpp hardware_interface controller_manager)
+catkin_package()
+include_directories(${catkin_INCLUDE_DIRS})
+add_executable(fake_hw src/fake_hw.cpp)
+target_link_libraries(fake_hw ${catkin_LIBRARIES})
+catkin_install_python(PROGRAMS scripts/fake_play_motion.py scripts/pal_list_controllers.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

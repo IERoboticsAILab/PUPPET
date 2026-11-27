@@ -1,0 +1,22 @@
+# PAL's controller names on TIAGo (Gallium), on fake hardware.
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 100
+arm_controller:
+  type: position_controllers/JointTrajectoryController
+  joints: [arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint, arm_7_joint]
+torso_controller:
+  type: position_controllers/JointTrajectoryController
+  joints: [torso_lift_joint]
+head_controller:
+  type: position_controllers/JointTrajectoryController
+  joints: [head_1_joint, head_2_joint]
+gripper_controller:
+  type: position_controllers/JointTrajectoryController
+  joints: [gripper_left_finger_joint, gripper_right_finger_joint]
+fake_hw:
+  joints: [torso_lift_joint, arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint, arm_7_joint,
+           head_1_joint, head_2_joint, gripper_left_finger_joint, gripper_right_finger_joint]
+  # TIAGo's home pose
+  initial: {torso_lift_joint: 0.15, arm_1_joint: 0.5, arm_2_joint: -1.34, arm_3_joint: -0.48, arm_4_joint: 1.94,
+            arm_5_joint: -1.49, arm_6_joint: 1.37, arm_7_joint: 0.0, gripper_left_finger_joint: 0.04, gripper_right_finger_joint: 0.04}

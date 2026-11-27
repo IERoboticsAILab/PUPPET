@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>natnet_ros_cpp</name>
+  <version>0.0.0</version>
+  <description>Mock of natnet_ros_cpp for the offline PUPPET test: publishes fixed rigid-body poses instead of talking to Motive.</description>
+  <maintainer email="123842829+rorosaga@users.noreply.github.com">Rodrigo Sagastegui</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+</package>
