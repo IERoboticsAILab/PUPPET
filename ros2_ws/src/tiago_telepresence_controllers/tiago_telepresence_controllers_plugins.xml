@@ -1,0 +1,22 @@
+<library path="tiago_telepresence_controllers_controllers">
+  <class name="tiago_telepresence_controllers/HeadControllerPlugin"
+         type="tiago_telepresence_controllers::HeadController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>Headset orientation to head pan/tilt.</description>
+  </class>
+  <class name="tiago_telepresence_controllers/TorsoControllerPlugin"
+         type="tiago_telepresence_controllers::TorsoController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>Torso up/down steps.</description>
+  </class>
+  <class name="tiago_telepresence_controllers/GripperControllerPlugin"
+         type="tiago_telepresence_controllers::GripperController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>Gripper open/close steps.</description>
+  </class>
+  <class name="tiago_telepresence_controllers/ArmControllerPlugin"
+         type="tiago_telepresence_controllers::ArmController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>Hand pose to arm joints (KDL velocity IK).</description>
+  </class>
+</library>

@@ -3,6 +3,8 @@
 **/devel/
 **/logs/
 **/install/
+**/log/
+ros2_ws/src/deps/
 **/__pycache__/
 *.pyc
 *.swp

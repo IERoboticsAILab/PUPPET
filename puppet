@@ -7,11 +7,18 @@
 #   ./puppet attach       re-open the tmux session (detach again: Ctrl+B then D)
 #   ./puppet reset-arm    stop telepresence, move to START_MOTION again, restart telepresence
 #   ./puppet down         stop everything in reverse order
-#   ./puppet shell        a shell with the archimedes ROS environment loaded
+#   ./puppet shell        a shell with the ROS environment loaded (ROS 2: a shell on TIAGo)
+#   ./puppet status       live health view, refreshed every few seconds (Ctrl+C to leave)
+#   ./puppet deploy       ROS 2 only: build ros2_ws in PAL's image and copy it to TIAGo
+#   ./puppet unity-test   ROS 2 only: see what the headset would receive (Quest disconnected!)
+#   ./puppet version      which ROS TIAGo runs (PUPPET_ROS in config/puppet.env: auto, 1 or 2)
 #
 # Options for up / reset-arm:
 #   --yes        do not ask before the arm moves (only once the operator has checked the area)
 #   --detach     do not attach to tmux at the end
+#
+# Same commands for ROS 1 (Gallium) and ROS 2 (PAL OS 25.01): PUPPET_ROS=auto asks TIAGo which
+# it runs. ROS 2 specifics live in scripts/ros2/puppet_ros2.sh.
 #
 # Every long-running process gets its own tmux window, so its log stays visible as in the
 # six-terminal procedure: mocap (terminals A+E+F), play_motion (C), telepresence (B), plus
@@ -116,10 +123,11 @@ EOF
 running() { [[ "$(controller_state "$1")" == running ]]; }
 
 wait_for() {  # wait_for <seconds> <description> <command...>
-  local secs=$1 what=$2 t=0; shift 2
+  # Wall-clock time: a single check can take seconds itself (SSH, ROS 2 CLI).
+  local secs=$1 what=$2 end=$((SECONDS + $1)); shift 2
   until "$@"; do
-    if (( t >= secs )); then fail "$what (gave up after ${secs}s)"; return 1; fi
-    sleep 1; t=$((t + 1))
+    if (( SECONDS >= end )); then fail "$what (gave up after ${secs}s)"; return 1; fi
+    sleep 1
   done
   ok "$what"
 }
@@ -134,7 +142,11 @@ start_window() {  # start_window <name>: run "./puppet _proc <name>" in its own 
   tm new-window -d -t "$SESSION" -n "$name" "'$PUPPET_ROOT/puppet' _proc $name"
 }
 
-window_alive() { [[ "$(tm display-message -p -t "$SESSION:$1" '#{pane_dead}' 2>/dev/null)" == 0 ]]; }
+window_alive() {
+  # Check the window exists first: for a missing window, tmux falls back to the current pane.
+  tm list-windows -t "$SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$1" || return 1
+  [[ "$(tm display-message -p -t "$SESSION:$1" '#{pane_dead}' 2>/dev/null)" == 0 ]]
+}
 
 interrupt_window() {  # Ctrl+C a window and wait for its process to exit
   local name=$1 secs=${2:-15} t=0
@@ -344,6 +356,45 @@ down() {
 
 usage() { awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; }
 
+detect_ros() {  # sets PUPPET_ROS to 1 or 2
+  case "${PUPPET_ROS:-auto}" in
+    1|2) return 0 ;;
+    auto) ;;
+    *) die "PUPPET_ROS must be auto, 1 or 2 (config/puppet.env), not '$PUPPET_ROS'" ;;
+  esac
+  local found
+  found=$(timeout 15 ssh "${SSH_OPTS[@]}" -o BatchMode=yes -o ConnectTimeout=5 "$TIAGO_SSH" \
+          'if [ -d /opt/pal/alum ]; then echo 2; elif [ -d /opt/pal/gallium ]; then echo 1; fi' 2>/dev/null) || true
+  if [[ -z "$found" ]]; then  # no passwordless SSH: a ROS 1 master answering means Gallium
+    local master_host=${ROS_MASTER_URI#*://}; master_host=${master_host%%:*}
+    if port_open "$master_host" 11311; then found=1; fi
+  fi
+  case "$found" in
+    1|2) PUPPET_ROS=$found ;;
+    *) die "cannot tell whether TIAGo runs ROS 1 or ROS 2 (SSH to $TIAGO_SSH failed?). Set PUPPET_ROS=1 or 2 in config/puppet.local.env" ;;
+  esac
+}
+
+shell_cmd() {
+  # ~/.bashrc first, then the PUPPET environment, so a ROS_MASTER_URI in .bashrc cannot win.
+  exec bash --rcfile <(printf '%s\n' '[ -f ~/.bashrc ] && source ~/.bashrc' \
+    "PUPPET_ROOT='$PUPPET_ROOT'" "source '$PUPPET_ROOT/puppet' _env" \
+    'echo "PUPPET env: ROS_MASTER_URI=$ROS_MASTER_URI ROS_IP=$ROS_IP"') -i
+}
+
+deploy() { die "deploy is for ROS 2 only. On Gallium, deploy with pal_deploy (ReadMe)."; }
+
+status_view() {  # live health view: ./puppet status
+  trap 'echo; exit 0' INT
+  while true; do
+    local out; out=$(check 2>&1 || true)
+    clear
+    echo "${B}PUPPET status${N} (ROS $PUPPET_ROS, $(date +%H:%M:%S), refresh ${STATUS_EVERY:-3}s, Ctrl+C to leave)"
+    echo "$out"
+    sleep "${STATUS_EVERY:-3}"
+  done
+}
+
 # ---------------------------------------------------------------- main
 load_config
 cmd=${1:-help}
@@ -356,19 +407,33 @@ for arg in "$@"; do
 done
 
 case "$cmd" in
+  help|-h|--help|_env|_proc) ;;
+  *)
+    detect_ros
+    # shellcheck source=scripts/ros2/puppet_ros2.sh
+    if [[ "$PUPPET_ROS" == 2 ]]; then source "$PUPPET_ROOT/scripts/ros2/puppet_ros2.sh"; fi ;;
+esac
+
+case "$cmd" in
   up)        up ;;
   down)      down ;;
   check)     check ;;
   doctor)    doctor ;;
   reset-arm) reset_arm ;;
   attach)    tm attach -t "$SESSION" ;;
-  shell)
-    # ~/.bashrc first, then the PUPPET environment, so a ROS_MASTER_URI in .bashrc cannot win.
-    exec bash --rcfile <(printf '%s\n' '[ -f ~/.bashrc ] && source ~/.bashrc' \
-      "PUPPET_ROOT='$PUPPET_ROOT'" "source '$PUPPET_ROOT/puppet' _env" \
-      'echo "PUPPET env: ROS_MASTER_URI=$ROS_MASTER_URI ROS_IP=$ROS_IP"') -i ;;
+  shell)     shell_cmd ;;
+  status)    status_view ;;
+  deploy)    deploy ;;
+  version)   echo "TIAGo ($TIAGO_SSH) runs ROS $PUPPET_ROS" ;;
+  unity-test)
+    [[ "$PUPPET_ROS" == 2 ]] || die "unity-test is for ROS 2 (on ROS 1 the headset itself is the test)"
+    confirm "The Quest must be disconnected (the endpoint serves one client at a time). Continue?" || exit 0
+    python3 "$PUPPET_ROOT/scripts/ros2/fake_unity.py" "$TCP_IP:$TCP_PORT" --listen 5 ;;
   _env)      ros_env; set +eu +o pipefail; return 0 2>/dev/null ;;
-  _proc)     proc "$1" ;;
+  _proc)
+    if [[ "${PUPPET_ROS:-auto}" == auto ]]; then detect_ros; fi
+    if [[ "$PUPPET_ROS" == 2 ]]; then source "$PUPPET_ROOT/scripts/ros2/puppet_ros2.sh"; fi
+    proc "$1" ;;
   help|-h|--help) usage ;;
   *) die "unknown command '$cmd' (./puppet help)" ;;
 esac

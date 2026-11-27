@@ -69,7 +69,7 @@ def execute_arm_motion(command):
   rospy.sleep(3.0) # important
 
   client.send_goal(goal)
-  client.wait_for_result(rospy.Duration(10.0))
+  client.wait_for_result(rospy.Duration(30.0))
   action_res = client.get_result()
   success, err_str = False, None
 

@@ -1,0 +1,7 @@
+# Third-party ROS 2 sources for ros2_ws (PAL OS 25.01 / Humble). Fetched by scripts/ros2/build.sh
+# into ros2_ws/src/deps/ (git-ignored). Pinned to exact commits.
+repositories:
+  ROS-TCP-Endpoint:
+    type: git
+    url: https://github.com/Unity-Technologies/ROS-TCP-Endpoint.git
+    version: 54c1a64b6d5ef6ffa0a0431570bb74329b79b15b  # main-ros2, release 0.7.0
