@@ -89,9 +89,7 @@ public class HeadCommander : MonoBehaviour
         {
             var now = Time.realtimeSinceStartupAsDouble;
 
-            HeaderMsg header = new(seq: ++seq,
-                                   stamp: new TimeMsg((uint)now, (uint)((now % 1.0) * 1e9)),
-                                   frame_id: "");
+            HeaderMsg header = Puppet.RosHeader.Make(now, ++seq, "");
 
             QuaternionMsg quaternion = new(x: currentOrientation.x,
                                            y: currentOrientation.y,

@@ -74,8 +74,9 @@ public class AudioRecorder : MonoBehaviour
             enableMicrophoneReference.action.performed += OnButtonPress;
         }
 
-        iconOff.enabled = !micEnabled;
-        iconOn.enabled = micEnabled;
+        // The mic icon images are not in the repo, so these references can be unset.
+        if (iconOff) iconOff.enabled = !micEnabled;
+        if (iconOn) iconOn.enabled = micEnabled;
     }
 
     private void OnApplicationQuit()
@@ -93,8 +94,8 @@ public class AudioRecorder : MonoBehaviour
         {
             Debug.Log(micEnabled ? "Microphone disabled" : "Microphone enabled");
             micEnabled = !micEnabled;
-            iconOff.enabled = !micEnabled;
-            iconOn.enabled = micEnabled;
+            if (iconOff) iconOff.enabled = !micEnabled;
+            if (iconOn) iconOn.enabled = micEnabled;
         }
     }
 
