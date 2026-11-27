@@ -81,7 +81,7 @@ ros2 run tiago_telepresence_controllers play_motion.py list | grep -qx extend ||
 echo "  ok    extend registered with play_motion2 by arm_motion.py"
 
 step "Keyboard condition (keyboard_teleop, ROS 2): i i i w = 9 mm forward, 3 mm up"
-# From a pose inside every joint limit (extend has arm_3 past its limit, which bends some directions).
+# From a pose well inside every joint limit (extend has arm_3 at 1.50, next to its limit of 1.5708).
 python3 /puppet_scripts/ros2/fake_unity.py 127.0.0.1:10000 --arm-motion mid || fail_logs
 python3 $T/check.py ee-snapshot /tmp/ee0.json
 ros2 run keyboard_teleop keyboard_arm_teleop.py --keys iiiw --yes > $LOG/keyboard.log 2>&1 || fail_logs
